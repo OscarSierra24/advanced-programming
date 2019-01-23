@@ -2,8 +2,8 @@
 #include <stdlib.h>
 
 int main(int argc, char ** argv){
-	printf(argv[1]);
-	printf("\n");
+	//printf(argv[1]);
+	//printf("\n");
 
 	FILE *output = fopen("output.c", "w+");
 	FILE *fp = fopen(argv[1], "r");
@@ -18,7 +18,7 @@ int main(int argc, char ** argv){
 	int canWrite = 1;
 	int state = 0; //when state = 0 we are not in a state, when state = 1 we are at type 1 comment, when state = 2 type 2 comment and when state = 3 we are inside a string 
 	while((currentCh=fgetc(fp)) != EOF){
-		printf("current char: %c \n", currentCh);
+		//printf("current char: %c \n", currentCh);
 		if(currentCh == '/' && prevCh == '/' && state == 0){
 			//printf("detecté comentario");
 			canWrite = 0;

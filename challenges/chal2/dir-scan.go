@@ -8,13 +8,14 @@ import (
 
 // scanDir stands for the directory scanning implementation
 func scanDir(dir string) (int, int, int, error) {
-	nDir := 0
+	nDir := -1 // -1 to avoid counting the parent folder
 	nSymLink := 0
 	nOthers := 0
 	
 	err := filepath.Walk(os.Args[1], func(path string, info os.FileInfo, err error) error {
 		m:=info.Mode()
 		if info.IsDir(){
+			fmt.Println(path);
 			nDir++
 		} else if m&os.ModeSymlink != 0{
 			nSymLink++
@@ -27,8 +28,6 @@ func scanDir(dir string) (int, int, int, error) {
 	if err != nil {
         panic(err)
 	}
-	//return nil
-
 	return nDir, nSymLink, nOthers, err
 }
 

@@ -1,12 +1,59 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define REPORT_FILE "report.txt"
 #define MAX_SEGMENT_SIZE 5000
 
-void insertNewLog(const char *category, const char* text);
+struct logContainer{
+    const char *category;
+    const char *text[1000];
+    int lastTextPos;
+};
+
+void insertNewLog(char category[], char text[]);
 void extractData();
 void analizeLog(char *logFile, char *report);
+
+struct logContainer container[1000];
+int lastEl = 0; //last logContainer position
+char catMem[10000][10000]; //category memory 
+char tMem[10000][10000]; //text memory
+int lastTMem = 0; //last tMem position
+
+void insertNewLog(char category[],char text[]){
+    for(int i = 0; i<lastEl;i++){
+        if(strcmp(catMem[i], category) == 0){
+            /*repeated category*/
+            container[i].text[container[i].lastTextPos] = strcpy(tMem[lastTMem], text);
+            container[i].lastTextPos++;
+            lastTMem++;
+            return;
+       }
+    }
+    /*Surpassing this line of code means that we have a new category*/
+    container[lastEl].category = strcpy(catMem[lastEl], category);
+    container[lastEl].text[0] = strcpy(tMem[lastTMem], text);
+    container[lastEl].lastTextPos = 1;
+    lastEl++;
+    lastTMem++;
+}
+
+void extractData(){
+    size_t output = open("report.txt", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    for(int i = 0; i < lastEl; i++){
+        write(output, container[i].category, strlen(container[i].category));
+        write(output, "\n", 1);
+        for(int j = 0; j < container[i].lastTextPos; j++){
+            write(output, container[i].text[j], strlen(container[i].text[j]));
+            write(output, "\n", 1);
+        }
+    }
+    close(output);
+}
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -29,8 +76,6 @@ void analizeLog(char *logFile, char *report) {
     char category[MAX_SEGMENT_SIZE] = "";
     char text[MAX_SEGMENT_SIZE] = "";
     printf("Generating Report from: [%s] log file\n", logFile);
-    printf("\n\n");
-
     state = 1;
     int i = 0;
     int seekSpace = 0; 
@@ -119,6 +164,7 @@ void analizeLog(char *logFile, char *report) {
             if(c == ':'){
                 seekSpace = 1;
                 text[i] = ':';
+                
                 i++;
                 continue;
             }
@@ -157,19 +203,4 @@ void analizeLog(char *logFile, char *report) {
         }          
     }
     fclose(file);
-    
-    //FILE *file = fopen(logFile, "r");
-
-    //int refReport = open("report.txt", O_RDONLY);
-
-    //int c;
-    //while ((c = getc(file)) != EOF){
-    //    printf("%c", c);
-    //    write(refReport, c, 1);
-    //}
-
-    //close(report);
-    //fclose(file); 
-
-    //printf("Report is generated at: [%s]\n", report);
 }

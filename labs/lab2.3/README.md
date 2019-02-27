@@ -13,7 +13,7 @@ make
 you can test it by typing:
 
 ```
-./cross-ref document.txt
+./cross-ref irving-little-573.txt
 ```
 
 ### Prerequisites

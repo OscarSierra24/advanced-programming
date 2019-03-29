@@ -85,3 +85,8 @@ Useful links
 - https://github.com/adonovan/gopl.io/tree/master/ch8/chat
 - https://github.com/adonovan/gopl.io/tree/master/ch8/netcat3
 - https://golang.org/pkg/flag/
+
+
+Notes:
+    Username "No user" is a reserved username, no username can be called like that.
+     

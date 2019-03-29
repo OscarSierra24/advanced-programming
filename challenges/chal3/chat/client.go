@@ -12,22 +12,31 @@ import (
 	"net"
 	"os"
 	"fmt"
-	//"strings"
+	"strings"
+	"flag"
 )
+
+var server *string 
+var username *string 
 
 //!+
 func main() {
-	conn, err := net.Dial("tcp", "localhost:8000")
+
+	server = flag.String("server", "No server", "server ip:port")
+	username = flag.String("user", "No user", "username") 
+	
+	flag.Parse()
+
+	if strings.Compare(*username, "No user") == 0 {
+		log.Fatal("Please, provide a username")
+	}
+
+	conn, err := net.Dial("tcp", *server)
 	if err != nil {
 		log.Fatal(err)
 	}
-		
-	fmt.Println(".")//os.Args[2])
 
-	go func() {
-		fmt.Fprintf(conn,  os.Args[2]+"\n")
-		io.Copy(os.Stdout, conn) // NOTE: ignoring errors
-	}()
+	fmt.Fprintf(conn,  *username + "\n")
 
 	done := make(chan struct{})
 	go func() {

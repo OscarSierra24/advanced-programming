@@ -24,7 +24,7 @@ type client chan<- string // an outgoing message channel
 
 var host *string //server host
 var port *int //server port
-var users map[string]string //stores users currently online
+var users map[string]net.Conn //stores users currently online
 
 var (
 	entering = make(chan client)
@@ -43,7 +43,7 @@ func getUsers() string{
 }
 
 func getUserInfo(user string) string{
-	return ("user: " + user + " ip: " +  users[user] )
+	return ("user: " + user + " ip: " +  users[user].RemoteAddr().String())
 }
 
 func getTime() string{
@@ -56,12 +56,15 @@ func getTime() string{
 	return buf.String()
 }
 
+func sendPrivateMessage(user string, text []string) {
+	fmt.Fprintln(users[user], strings.Join(text," "))
+}
+
 func broadcaster() {
 	clients := make(map[client]bool) // all connected clients
 	for {
 		select {
 		case msg := <-messages:
-			//fmt.Println("estoy aqui")
 			// Broadcast incoming message to all
 			// clients' outgoing message channels.
 			for cli := range clients {
@@ -83,7 +86,7 @@ func broadcaster() {
 //!+handleConn
 func handleConn(conn net.Conn, user string) {
 	
-	users[user] = conn.RemoteAddr().String()
+	users[user] = conn
 
 	ch := make(chan string) // outgoing client messages
 	go clientWriter(conn, ch, user)
@@ -97,7 +100,8 @@ func handleConn(conn net.Conn, user string) {
 	for input.Scan() {
 		text := input.Text()
 		tLength := len(text)
-		fmt.Println(text)
+		
+		//fmt.Println(text) //uncomment this to see incoming messages
 
 		if tLength <= 0 {
 			messages <- user + ": " + input.Text()	 
@@ -126,6 +130,11 @@ func handleConn(conn net.Conn, user string) {
 			} else {
 				messages <- user + ": " + text 	
 			}
+		} else if len(commandText) <= 3 {
+			if strings.Compare(commandText [0],  "/msg") == 0{
+				sendPrivateMessage(commandText[1], commandText[2:])
+			}
+
 		}
 
 	}
@@ -158,7 +167,7 @@ func main() {
 	
 	fmt.Println(getTime())
 
-	users = make(map[string]string)
+	users = make(map[string]net.Conn)
 
 	fmt.Println("host: ", *host)
 	fmt.Println("port: ", *port)

@@ -43,7 +43,12 @@ func getUsers() string{
 }
 
 func getUserInfo(user string) string{
-	return ("user: " + user + " ip: " +  users[user].RemoteAddr().String())
+	if _, ok := users[user]; ok { //checks if user is already connected
+		return ("user: " + user + " ip: " +  users[user].RemoteAddr().String())
+	} else {
+		return "There's no user with that name"
+	}
+	
 }
 
 func getTime() string{
@@ -56,8 +61,13 @@ func getTime() string{
 	return buf.String()
 }
 
-func sendPrivateMessage(user string, text []string) {
-	fmt.Fprintln(users[user], strings.Join(text," "))
+func sendPrivateMessage(originUser, destinyUser string, text []string) {
+	if _, ok := users[destinyUser]; ok { //checks if user is already connected
+		fmt.Fprintln(users[destinyUser], strings.Join(text," "))
+	} else {
+		fmt.Fprintln(users[originUser], "There's no user with that name")
+	}
+	
 }
 
 func broadcaster() {
@@ -130,11 +140,10 @@ func handleConn(conn net.Conn, user string) {
 			} else {
 				messages <- user + ": " + text 	
 			}
-		} else if len(commandText) <= 3 {
+		} else if len(commandText) >= 3 {
 			if strings.Compare(commandText [0],  "/msg") == 0{
-				sendPrivateMessage(commandText[1], commandText[2:])
+				sendPrivateMessage(user, commandText[1], commandText[2:])
 			}
-
 		}
 
 	}

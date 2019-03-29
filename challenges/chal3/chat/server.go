@@ -12,10 +12,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
+	//"strings"
 	"flag"
 	"strconv"
 	"bytes"
+	"time"
 )
 
 //!+broadcaster
@@ -38,6 +39,16 @@ func getUsers() string{
 		buf.WriteString(k + " ")
 	}
 
+	return buf.String()
+}
+
+func getTime() string{
+	var buf bytes.Buffer
+	buf.WriteString("Local time: ")
+	buf.WriteString(time.Now().Location().String())
+	buf.WriteString(" ")
+	buf.WriteString(time.Now().Format("15:04:05"))
+	
 	return buf.String()
 }
 
@@ -72,7 +83,6 @@ func handleConn(conn net.Conn, user string) {
 
 	ch := make(chan string) // outgoing client messages
 	go clientWriter(conn, ch, user)
-	//who := conn.RemoteAddr().String()
 
 	ch <- "You are " + user
 	messages <- user + " has arrived"
@@ -82,11 +92,16 @@ func handleConn(conn net.Conn, user string) {
 	input := bufio.NewScanner(conn)
 	for input.Scan() {
 		fmt.Println(input.Text())
-		if strings.Compare(input.Text(), "/users") == 0{
+		switch text := input.Text(); text {
+		case "/users":
 			ch <- getUsers()
-			continue
+
+		case "/time":
+			ch <- getTime()
+		
+		default:
+			messages <- user + ": " + input.Text()
 		}
-		messages <- user + ": " + input.Text()
 	}
 	//----------------------------------------------------
 
@@ -115,11 +130,15 @@ func main() {
 	
 	flag.Parse()
 	
+	fmt.Println(getTime())
+
 	users = make(map[string]bool)
 
 	fmt.Println("host: ", *host)
 	fmt.Println("port: ", *port)
 	fmt.Println("")
+
+	
 
 	listener, err := net.Listen("tcp", (*host + ":" + strconv.Itoa(*port)))	
 	if err != nil {

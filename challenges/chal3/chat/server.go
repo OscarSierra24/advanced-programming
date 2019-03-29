@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	//"strings"
+	"strings"
 	"flag"
 	"strconv"
 	"bytes"
@@ -24,7 +24,7 @@ type client chan<- string // an outgoing message channel
 
 var host *string //server host
 var port *int //server port
-var users map[string]bool //stores users currently online
+var users map[string]string //stores users currently online
 
 var (
 	entering = make(chan client)
@@ -40,6 +40,10 @@ func getUsers() string{
 	}
 
 	return buf.String()
+}
+
+func getUserInfo(user string) string{
+	return ("user: " + user + " ip: " +  users[user] )
 }
 
 func getTime() string{
@@ -79,7 +83,7 @@ func broadcaster() {
 //!+handleConn
 func handleConn(conn net.Conn, user string) {
 	
-	users[user] = true
+	users[user] = conn.RemoteAddr().String()
 
 	ch := make(chan string) // outgoing client messages
 	go clientWriter(conn, ch, user)
@@ -91,17 +95,39 @@ func handleConn(conn net.Conn, user string) {
 	//--------------client message handler----------------
 	input := bufio.NewScanner(conn)
 	for input.Scan() {
-		fmt.Println(input.Text())
-		switch text := input.Text(); text {
-		case "/users":
-			ch <- getUsers()
+		text := input.Text()
+		tLength := len(text)
+		fmt.Println(text)
 
-		case "/time":
-			ch <- getTime()
-		
-		default:
-			messages <- user + ": " + input.Text()
+		if tLength <= 0 {
+			messages <- user + ": " + input.Text()	 
+			continue
 		}
+		if strings.Compare(string(text[0]), "/") != 0 {
+			messages <- user + ": " + input.Text()	 
+			continue
+		}
+
+		//splits the message when / was detected at the 0 index	
+		commandText := strings.Split(strings.Trim(text, " "), " ")
+		
+		if len(commandText) == 1 {
+			switch commandText[0] {
+			case "/users":
+				ch <- getUsers()
+			case "/time":
+				ch <- getTime()
+			default:
+				messages <- user + ": " + text	 	
+			}
+		} else if len(commandText) == 2 {
+			if strings.Compare(commandText [0],  "/user") == 0{
+				ch <- getUserInfo(commandText[1])
+			} else {
+				messages <- user + ": " + text 	
+			}
+		}
+
 	}
 	//----------------------------------------------------
 
@@ -132,13 +158,11 @@ func main() {
 	
 	fmt.Println(getTime())
 
-	users = make(map[string]bool)
+	users = make(map[string]string)
 
 	fmt.Println("host: ", *host)
 	fmt.Println("port: ", *port)
-	fmt.Println("")
-
-	
+	fmt.Println("")		
 
 	listener, err := net.Listen("tcp", (*host + ":" + strconv.Itoa(*port)))	
 	if err != nil {

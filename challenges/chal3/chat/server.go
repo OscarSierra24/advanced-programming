@@ -34,7 +34,7 @@ var (
 
 func getUsers() string{ 
 	var buf bytes.Buffer
-
+	buf.WriteString("irc-server > ");
 	for k, _ := range users { 
 		buf.WriteString(k + " ")
 	}
@@ -44,7 +44,7 @@ func getUsers() string{
 
 func getUserInfo(user string) string{
 	if _, ok := users[user]; ok { //checks if user is already connected
-		return ("user: " + user + " ip: " +  users[user].RemoteAddr().String())
+		return ("irc-server > Username: " + user + " Ip: " +  users[user].RemoteAddr().String())
 	} else {
 		return "There's no user with that name"
 	}
@@ -53,7 +53,7 @@ func getUserInfo(user string) string{
 
 func getTime() string{
 	var buf bytes.Buffer
-	buf.WriteString("Local time: ")
+	buf.WriteString("irc-server > Local time: ")
 	buf.WriteString(time.Now().Location().String())
 	buf.WriteString(" ")
 	buf.WriteString(time.Now().Format("15:04:05"))
@@ -63,7 +63,7 @@ func getTime() string{
 
 func sendPrivateMessage(originUser, destinyUser string, text []string) {
 	if _, ok := users[destinyUser]; ok { //checks if user is already connected
-		fmt.Fprintln(users[destinyUser], strings.Join(text," "))
+		fmt.Fprintln(users[destinyUser], originUser + "> " + strings.Join(text," "))
 	} else {
 		fmt.Fprintln(users[originUser], "There's no user with that name")
 	}
@@ -101,9 +101,11 @@ func handleConn(conn net.Conn, user string) {
 	ch := make(chan string) // outgoing client messages
 	go clientWriter(conn, ch, user)
 
-	ch <- "You are " + user
-	messages <- user + " has arrived"
+	ch <- "irc-server > Welcome to the Simple IRC Server"
+	ch <- "Your user [" + user +"] is successfully logged in"; 
+	messages <- "New connected user ["+ user + "]"
 	entering <- ch
+	fmt.Println("irc-server > new connected user [" + user + "]");
 
 	//--------------client message handler----------------
 	input := bufio.NewScanner(conn)
@@ -114,11 +116,11 @@ func handleConn(conn net.Conn, user string) {
 		//fmt.Println(text) //uncomment this to see incoming messages
 
 		if tLength <= 0 {
-			messages <- user + ": " + input.Text()	 
+			messages <- user + "> " + input.Text()	 
 			continue
 		}
 		if strings.Compare(string(text[0]), "/") != 0 {
-			messages <- user + ": " + input.Text()	 
+			messages <- user + "> " + input.Text()	 
 			continue
 		}
 
@@ -132,13 +134,13 @@ func handleConn(conn net.Conn, user string) {
 			case "/time":
 				ch <- getTime()
 			default:
-				messages <- user + ": " + text	 	
+				messages <- user + "> " + text	 	
 			}
 		} else if len(commandText) == 2 {
 			if strings.Compare(commandText [0],  "/user") == 0{
 				ch <- getUserInfo(commandText[1])
 			} else {
-				messages <- user + ": " + text 	
+				messages <- user + "> " + text 	
 			}
 		} else if len(commandText) >= 3 {
 			if strings.Compare(commandText [0],  "/msg") == 0{
@@ -150,7 +152,8 @@ func handleConn(conn net.Conn, user string) {
 	//----------------------------------------------------
 
 	delete(users, user)
-	fmt.Println("user" , user, "has left\n")
+
+	fmt.Println("irc-server > ["+user+"] left")
 
 	leaving <- ch
 	messages <- user + " has left"
@@ -174,13 +177,10 @@ func main() {
 	
 	flag.Parse()
 	
-	fmt.Println(getTime())
-
 	users = make(map[string]net.Conn)
 
-	fmt.Println("host: ", *host)
-	fmt.Println("port: ", *port)
-	fmt.Println("")		
+	fmt.Println("irc-server > Simple IRC Server started at", *host, *port);
+	fmt.Println("irc-server > Ready for receiving new clients");
 
 	listener, err := net.Listen("tcp", (*host + ":" + strconv.Itoa(*port)))	
 	if err != nil {
@@ -198,13 +198,13 @@ func main() {
 		user, _ := bufio.NewReader(conn).ReadString('\n')
 		user = user[:len(user)-1]
 		
-		fmt.Println("new user login attempt: ",	 user);
+		//fmt.Println("irc-server > new user login attempt: ",	 user);
 		if _, ok := users[user]; ok { //checks if user is already connected
-			fmt.Println("login attempt failed\n");
-			fmt.Fprintf(conn, "Sorry, that username is already chosen. Please, choose another one")
+			//fmt.Println("login attempt failed\n");
+			fmt.Fprintf(conn, "irc-server > Sorry, that username is already chosen. Please, choose another one")
 			conn.Close()
 		} else {
-			fmt.Println("login succeded\n")
+			//fmt.Println("login succeded\n")
 			go handleConn(conn, user)			
 		}
 	}

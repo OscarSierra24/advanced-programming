@@ -1,7 +1,7 @@
 CC       = gcc
 CFLAGS   = -Wall
 LDFLAGS  =
-OBJFILES = mytop.o
+OBJFILES = logger.o mytop.o
 TARGET   = mytop
 
 all: $(TARGET)

@@ -30,11 +30,12 @@ FILE *createDashboardSnapshot(){
 } 
 
 void signalManager(int sig){
+  saveFile = createDashboardSnapshot();
+
   DIR *dp;
   struct dirent *ep;     
   dp = opendir (PROC);
   ep = readdir(dp);
-
   fprintf(saveFile, "|-------|-------|--------------------------|------------------|------------|-----------|------------|\n");
   fprintf(saveFile, "|PID    |Parent |Name                      |State             |Memory      |# Threads  |Open Files  |\n");
   fprintf(saveFile, "|-------|-------|--------------------------|------------------|------------|-----------|------------|\n");
@@ -179,8 +180,6 @@ void retrieveEachProcessesInfo(DIR *dp, struct dirent *ep, int output){
 }
 
 int main(){
-  saveFile = createDashboardSnapshot();
-
   initLogger("stdout");
   signal(SIGINT, signalManager); 
   
